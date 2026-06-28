@@ -54,10 +54,14 @@ def fetch_recent_news(rss_urls, time_window_minutes):
     return recent_news
 
 def summarize_batch_with_gemini(news_items):
-    # รวมข่าวทั้งหมดให้เป็นก้อนเดียวเพื่อส่งทีเดียว
+    # รวมข่าวทั้งหมดให้เป็นก้อนเดียว และตัดเนื้อหาให้สั้นลง
     news_text = ""
     for i, item in enumerate(news_items, 1):
-        news_text += f"\n[{i}] หัวข้อ: {item['title']}\nเนื้อหา: {item['description']}\nลิงก์: {item['link']}\n"
+        # ตัดเนื้อหาให้เหลือแค่ 200 ตัวอักษร เพื่อป้องกันข้อความยาวเกิน Limit AI
+        raw_desc = item.get('description', '')
+        short_desc = raw_desc[:200] + "..." if len(raw_desc) > 200 else raw_desc
+        
+        news_text += f"\n[{i}] หัวข้อ: {item['title']}\nเนื้อหา: {short_desc}\nลิงก์: {item['link']}\n"
 
     prompt = f"""
     คุณคือนักวิเคราะห์ข่าวเศรษฐกิจและตลาดทองคำมืออาชีพ (Gold Market Analyst)
