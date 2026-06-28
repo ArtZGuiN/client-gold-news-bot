@@ -84,48 +84,30 @@ def summarize_batch_with_gemini(news_items):
     5. ตอนท้ายของแต่ละข่าวที่สรุป ให้แนบ 'ลิงก์' ของข่าวนั้นๆ
     """
     
-    try:
-        print("🔍 กำลังสแกนหาโมเดล AI ที่รองรับโควต้าฟรีสำหรับบัญชีนี้...")
-        
-        # ดึงรายชื่อโมเดลทั้งหมดที่ API Key นี้มีสิทธิ์ใช้งาน
-        available_models = [m.name for m in client.models.list()]
-        
-        target_model = None
-        # พยายามหารุ่น 1.5-flash ก่อน (เพราะให้โควต้าฟรีเยอะสุดและเสถียร)
-        for name in available_models:
-            if 'flash' in name.lower() and '1.5' in name:
-                target_model = name
-                break
-                
-        # ถ้าไม่มี 1.5 ให้เอารุ่น flash อะไรก็ได้ที่เจอ
-        if not target_model:
-            for name in available_models:
-                if 'flash' in name.lower():
-                    target_model = name
-                    break
-        
-        # ลบคำว่า models/ ออก ป้องกัน Error
-        if target_model and target_model.startswith('models/'):
-            target_model = target_model.replace('models/', '')
-            
-        if not target_model:
-            target_model = 'gemini-1.5-flash-8b' # กรณีฉุกเฉิน
-            
-        print(f"✅ พบโมเดลที่ใช้งานได้และนำมาประมวลผล: {target_model}")
-        
-        response = client.models.generate_content(
-            model=target_model,
-            contents=prompt
-        )
-        return response.text.strip()
-    except Exception as e:
-        print(f"❌ Error calling Gemini: {e}")
-        # ถ้า error ให้ลองปริ้นรายชื่อโมเดลออกมาดูว่าเกิดอะไรขึ้น
+    # 🎯 จัดคิว AI รุ่นสำรอง (ตัวท็อป -> ตัวรอง -> ตัวไวสุด) ป้องกันเซิร์ฟเวอร์ล่ม
+    model_queue = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite']
+    
+    for target_model in model_queue:
         try:
-             print("List of available models:", [m.name for m in client.models.list()])
-        except:
-             pass
-        return None
+            print(f"กำลังเรียกใช้ AI รุ่น: {target_model} ...")
+            response = client.models.generate_content(
+                model=target_model,
+                contents=prompt
+            )
+            return response.text.strip()
+        except Exception as e:
+            error_msg = str(e)
+            print(f"❌ รุ่น {target_model} ไม่พร้อมใช้งาน ({error_msg})")
+            
+            # ถ้าเซิร์ฟเวอร์เต็ม (503) หรือโควต้าโดนจำกัด (429) ให้เปลี่ยนไปใช้รุ่นถัดไปทันที
+            if '503' in error_msg or '429' in error_msg:
+                print(f"⏳ สลับไปใช้รุ่นสำรองอันถัดไป...")
+                time.sleep(2)
+                continue
+            else:
+                break # ถ้าเป็น Error ร้ายแรงอื่นๆ ให้หยุด
+                
+    return None
 
 def send_to_telegram(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
