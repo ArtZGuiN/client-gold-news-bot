@@ -23,7 +23,7 @@ if not GEMINI_API_KEY:
     exit(1)
 
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 def fetch_recent_news(rss_urls, time_window_minutes):
     rss_list = [url.strip() for url in rss_urls.split(',') if url.strip()]
