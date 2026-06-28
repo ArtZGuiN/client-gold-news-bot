@@ -88,7 +88,7 @@ def summarize_batch_with_gemini(news_items):
     try:
         # 🚀 เปลี่ยนมาใช้ gemini-1.5-flash เพื่อให้แน่ใจว่าโควต้ารายวันไม่เต็ม
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-2.0-flash',
             contents=prompt
         )
         return response.text.strip()
