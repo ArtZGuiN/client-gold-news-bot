@@ -66,7 +66,6 @@ def fetch_recent_news(rss_urls, time_window_minutes):
 def summarize_batch_with_gemini(news_items):
     news_text = ""
     for i, item in enumerate(news_items, 1):
-        # ตัดเนื้อหาให้สั้นลงเหลือแค่ 200 ตัวอักษร ป้องกัน Token ล้น
         raw_desc = item.get('description', '')
         short_desc = raw_desc[:200] + "..." if len(raw_desc) > 200 else raw_desc
         news_text += f"\n[{i}] หัวข้อ: {item['title']}\nเนื้อหา: {short_desc}\nลิงก์: {item['link']}\n"
@@ -86,14 +85,46 @@ def summarize_batch_with_gemini(news_items):
     """
     
     try:
-        # 🚀 เปลี่ยนมาใช้ gemini-1.5-flash เพื่อให้แน่ใจว่าโควต้ารายวันไม่เต็ม
+        print("🔍 กำลังสแกนหาโมเดล AI ที่รองรับโควต้าฟรีสำหรับบัญชีนี้...")
+        
+        # ดึงรายชื่อโมเดลทั้งหมดที่ API Key นี้มีสิทธิ์ใช้งาน
+        available_models = [m.name for m in client.models.list()]
+        
+        target_model = None
+        # พยายามหารุ่น 1.5-flash ก่อน (เพราะให้โควต้าฟรีเยอะสุดและเสถียร)
+        for name in available_models:
+            if 'flash' in name.lower() and '1.5' in name:
+                target_model = name
+                break
+                
+        # ถ้าไม่มี 1.5 ให้เอารุ่น flash อะไรก็ได้ที่เจอ
+        if not target_model:
+            for name in available_models:
+                if 'flash' in name.lower():
+                    target_model = name
+                    break
+        
+        # ลบคำว่า models/ ออก ป้องกัน Error
+        if target_model and target_model.startswith('models/'):
+            target_model = target_model.replace('models/', '')
+            
+        if not target_model:
+            target_model = 'gemini-1.5-flash-8b' # กรณีฉุกเฉิน
+            
+        print(f"✅ พบโมเดลที่ใช้งานได้และนำมาประมวลผล: {target_model}")
+        
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model=target_model,
             contents=prompt
         )
         return response.text.strip()
     except Exception as e:
-        print(f"Error calling Gemini: {e}")
+        print(f"❌ Error calling Gemini: {e}")
+        # ถ้า error ให้ลองปริ้นรายชื่อโมเดลออกมาดูว่าเกิดอะไรขึ้น
+        try:
+             print("List of available models:", [m.name for m in client.models.list()])
+        except:
+             pass
         return None
 
 def send_to_telegram(message):
