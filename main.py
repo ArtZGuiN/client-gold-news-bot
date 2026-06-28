@@ -1,6 +1,6 @@
 import os
 import feedparser
-import google.generativeai as genai
+from google import genai
 import requests
 import time
 from dotenv import load_dotenv
@@ -22,8 +22,8 @@ if not GEMINI_API_KEY:
     print("Error: GEMINI_API_KEY is not set.")
     exit(1)
 
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+# ใช้ระบบเชื่อมต่อใหม่ของ Google (google.genai)
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 def fetch_recent_news(rss_urls, time_window_minutes):
     rss_list = [url.strip() for url in rss_urls.split(',') if url.strip()]
@@ -64,7 +64,11 @@ def summarize_with_gemini(news_item):
     (หากข่าวนี้เป็นเพียงข่าวขยะ, โฆษณา, หรือไม่มีเนื้อหาสาระสำคัญ ให้คุณพิมพ์ตอบกลับมาคำเดียวสั้นๆ ว่า "SKIP" เพื่อให้ระบบข้ามข่าวนี้ไป)
     """
     try:
-        response = model.generate_content(prompt)
+        # อัปเกรดคำสั่งเรียก AI รุ่นใหม่ล่าสุด
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=prompt
+        )
         return response.text.strip()
     except Exception as e:
         print(f"Error summarizing {news_item['title']}: {e}")
