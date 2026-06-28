@@ -66,7 +66,7 @@ def summarize_with_gemini(news_item):
     try:
         # อัปเกรดคำสั่งเรียก AI รุ่นใหม่ล่าสุด
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-2.0-flash',
             contents=prompt
         )
         return response.text.strip()
